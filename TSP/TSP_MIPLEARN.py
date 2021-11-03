@@ -58,6 +58,14 @@ class TSP_instance(Instance):
         model.objective = pyEnv.Objective(rule=obj_func,sense=pyEnv.minimize)
         
         ##------------------------------------------------------##
+        
+        # x11, x22, ... should all be zero! you can't leave to a city where you just arrived
+        def newrule(model):
+            return sum(model.x[i,j] for i in model.N for j in model.M if i == j ) == 0
+        model.newconst = pyEnv.Constraint( rule=newrule)
+        
+        ##------------------------------------------------------##
+        
         #Only 1 leaves each city
         
         def rule_const1(model,M):
@@ -71,6 +79,7 @@ class TSP_instance(Instance):
             return sum(model.x[N,j] for j in model.M if j!=N) == 1
         
         model.rest2 = pyEnv.Constraint(model.N,rule=rule_const2)
+
         ##------------------------------------------------------##
         #Only a single tour covering all cities
         
@@ -93,7 +102,9 @@ class TSP_instance(Instance):
     
     def get_cities(self):
         return self.cities
-
+    
+    def get_cost_matrix(self):
+        return self.cost_matrix
 ##-------------------------INSTANCE GENERATOR--------------------##
 
 def instance_generator(amount_instances,amount_cities):
@@ -166,7 +177,7 @@ def generate_slightly_different_cities(cities):
     alfa_distr = uniform(-2,4) #uniforme distributie van -2 tot 2
     new_cities = np.array([0]*2)
     for i in cities:
-        row = [(j+alfa_distr.rvs()) for j in i]
+        row = [round((j+alfa_distr.rvs()),3) for j in i]
         row_array = np.array(row) #needs to be an np.array
         #np.append(new_cities,row_array)
         new_cities = np.vstack([new_cities, row_array])
@@ -198,7 +209,6 @@ def compute_distances(cities):
         distance_matrix = np.vstack([distance_matrix, row_array])
     
     distance_matrix = np.delete(distance_matrix,0,0)
-    #print(distance_matrix)
     list = distance_matrix.tolist()
     return list
 
@@ -208,17 +218,25 @@ import pickle
 def training():
     
     ##-------------------------TRAINING DATA--------------------##
-    training_instances = instance_generator(50,20) #genereer 100 keer 25steden die lichtjes anders zijn
+    #training_instances = random_instance_generator(20,25)
+    amount_instances = 1
+    amount_cities = 5
+    training_instances = instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
     
     ##-------------------------SOLVE ALL TRAINING INSATNCES--------------------##
-    solver = LearningSolver(solver="gurobi")
+    solver = LearningSolver() #gurobi is the default
     '''
     Learning Solver = a learning-enhanced MIP solver which uses information from previously solved instances to accelerate the solution of new instances
     '''
     
     for instance in training_instances:
         solver.solve(instance)
-    
+        '''
+        #random bug fix!!
+        for i in range (1,amount_cities+1):
+            instance.lp_solution['x'][(i,i)] = 0
+        '''
+
     ##-------------------------LEARN FROM TRAINING INSTANCES--------------------##
     print("Training... please be patient")
     solver.fit(training_instances)
@@ -233,7 +251,6 @@ def miplearnSolver():
     ##-------------------------SOLVE TEST INSTANCE--------------------##
     
     ##-------------------------TEST DATA--------------------##
-    #test_instances = instance_generator(1,25)[0]
     test_instances = instance_generator(1,25)[0]
     cities = test_instances.get_cities()
     print('test instance for miplearn: \n',cities)
@@ -263,7 +280,7 @@ def miplearnSolver():
 ##-------------------------RegularSolver--------------------##
 
 def regularSolver():
-    test_instance = instance_generator(1,25)[0]
+    test_instance = instance_generator(1,40)[0]
     cities = test_instance.get_cities()
     #print('test instance for regular solve: \n\n',cities)
     
@@ -346,5 +363,5 @@ def runBasic():
     plot_cities(c_basic,bestC_basic,'basic',round(float(time_basic),4))
 
 
-runBasic()
+#runBasic()
 runMIPLearn()
