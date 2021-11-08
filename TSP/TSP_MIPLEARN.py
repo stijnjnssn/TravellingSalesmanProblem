@@ -95,10 +95,14 @@ class TSP_instance(Instance):
         return model
     
     def get_instance_features(self):
-        return np.array([1])
+        flat_cities = self.cities.flatten()
+        amount_cities = np.array([self.n])
+        new_array = np.append(flat_cities,amount_cities)
+        return new_array
     
     def get_variable_features(self, var, index):
         return np.array([1])
+
 
     #Try to fix miplearn bug
     def get_variable_category(self, var, index):
@@ -159,6 +163,7 @@ def generate_same_cities(amount):
     x = uniform(loc = 0, scale = 10000) #x is uniform verdeeld in domein [0,1000]
     y = uniform(loc = 0, scale = 10000)
     cities = np.array([(round(x.rvs(),3),round(y.rvs(),3)) for i in range(amount)])
+    print(cities.flatten())
     return cities
 
 def generate_random_cities(amount):
@@ -228,7 +233,7 @@ def training():
     ##-------------------------TRAINING DATA--------------------##
     #training_instances = random_instance_generator(20,25)
     amount_instances = 100
-    amount_cities = 50
+    amount_cities = 25
     training_instances = instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
     
     ##-------------------------SOLVE ALL TRAINING INSATNCES--------------------##
@@ -246,7 +251,7 @@ def training():
     print("Training is complete!")
     pickle.dump(solver,open("solver.pickle","wb"))
 
-training() #has to be done before calling miplearnSolver()!!
+#training() #has to be done before calling miplearnSolver()!!
 
 
 def miplearnSolver():
@@ -254,7 +259,7 @@ def miplearnSolver():
     ##-------------------------SOLVE TEST INSTANCE--------------------##
     
     ##-------------------------TEST DATA--------------------##
-    test_instances = instance_generator(1,50)[0]
+    test_instances = instance_generator(1,25)[0]
     cities = test_instances.get_cities()
     #print('test instance for miplearn: \n',cities)
 
@@ -283,7 +288,7 @@ def miplearnSolver():
 ##-------------------------RegularSolver--------------------##
 
 def regularSolver():
-    test_instance = instance_generator(1,50)[0]
+    test_instance = instance_generator(1,25)[0]
     cities = test_instance.get_cities()
     #print('test instance for regular solve: \n\n',cities)
     

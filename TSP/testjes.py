@@ -1,8 +1,5 @@
-import statistics as s
+import numpy as np
+a = np.array([[1,2],
+          [3,4]])
 
-
-
-timelist = []
-for i in range(3):
-    print(9)
-print(s.mean(timelist))
+print(a.flatten())
