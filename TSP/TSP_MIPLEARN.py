@@ -58,12 +58,12 @@ class TSP_instance(Instance):
         model.objective = pyEnv.Objective(rule=obj_func,sense=pyEnv.minimize)
         
         ##------------------------------------------------------##
-        
+        """
         # x11, x22, ... should all be zero! you can't leave to a city where you just arrived
         def newrule(model):
             return sum(model.x[i,j] for i in model.N for j in model.M if i == j ) == 0
         model.newconst = pyEnv.Constraint( rule=newrule)
-        
+        """
         ##------------------------------------------------------##
         
         #Only 1 leaves each city
@@ -103,11 +103,8 @@ class TSP_instance(Instance):
     #Try to fix miplearn bug
     def get_variable_category(self, var, index):
         if var == "u":
-            #train one ML model per u variable
-            #return index
-
-            #train one ML model for all u variables:
-            return "u"
+            #return index #train one ML model per u variable
+            return "u" #train one ML model for all u variables:
         else:
             return None
     
@@ -116,8 +113,8 @@ class TSP_instance(Instance):
     
     def get_cost_matrix(self):
         return self.cost_matrix
-##-------------------------INSTANCE GENERATOR--------------------##
 
+##-------------------------INSTANCE GENERATOR--------------------##
 def instance_generator(amount_instances,amount_cities):
     instances = []
     cities = generate_same_cities(amount_cities)
@@ -135,10 +132,10 @@ def random_instance_generator(amount_instances,amount_cities):
     for i in range(amount_instances):
         new_cities = generate_random_cities(amount_cities)
         cost_matrix = compute_distances(new_cities)
-        print(f"\n {cost_matrix}")
+        #print(f"\n {cost_matrix}")
         instance = TSP_instance(amount_cities,cost_matrix,new_cities)
         instances.append(instance)
-    print([i.get_cities() for i in instances])
+    #print([i.get_cities() for i in instances])
     
     return instances
 
@@ -185,7 +182,7 @@ def generate_random_cities(amount):
     return cities
 
 def generate_slightly_different_cities(cities):
-    alfa_distr = uniform(-5,10) #uniforme distributie van -2 tot 2
+    alfa_distr = uniform(-100,200) #uniform(a,b) uniforme distributie van a to a+b
     new_cities = np.array([0]*2)
     for i in cities:
         row = [round((j+alfa_distr.rvs()),3) for j in i]
@@ -230,12 +227,12 @@ def training():
     
     ##-------------------------TRAINING DATA--------------------##
     #training_instances = random_instance_generator(20,25)
-    amount_instances = 1
-    amount_cities = 5
+    amount_instances = 100
+    amount_cities = 50
     training_instances = instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
     
     ##-------------------------SOLVE ALL TRAINING INSATNCES--------------------##
-    solver = LearningSolver() #gurobi is the default
+    solver = LearningSolver(time_limit=20) #gurobi is the default
     '''
     Learning Solver = a learning-enhanced MIP solver which uses information from previously solved instances to accelerate the solution of new instances
     '''
@@ -249,7 +246,7 @@ def training():
     print("Training is complete!")
     pickle.dump(solver,open("solver.pickle","wb"))
 
-training() #has to be done before calling miplearnSolver()!!
+#training() #has to be done before calling miplearnSolver()!!
 
 
 def miplearnSolver():
@@ -257,15 +254,15 @@ def miplearnSolver():
     ##-------------------------SOLVE TEST INSTANCE--------------------##
     
     ##-------------------------TEST DATA--------------------##
-    test_instances = instance_generator(1,25)[0]
+    test_instances = instance_generator(1,50)[0]
     cities = test_instances.get_cities()
-    print('test instance for miplearn: \n',cities)
+    #print('test instance for miplearn: \n',cities)
 
     # Load trained solver from disk
     solver = pickle.load(open("solver.pickle", "rb"))
     results = solver.solve(test_instances)
     print("miplearn model: \n")
-    #print(results['Log'])
+    print(results['Log'])
 
     bestCities = []
     x = test_instances.solution["x"]
@@ -273,7 +270,7 @@ def miplearnSolver():
     for i in List:
         if x[i] == 1.0:
             bestCities.append([*i])
-            print(i,'--', x[i])
+            #print(i,'--', x[i])
     
     walltime = results['Wallclock time']
     print(f"wallclocktime: {walltime}")
@@ -286,7 +283,7 @@ def miplearnSolver():
 ##-------------------------RegularSolver--------------------##
 
 def regularSolver():
-    test_instance = instance_generator(1,40)[0]
+    test_instance = instance_generator(1,50)[0]
     cities = test_instance.get_cities()
     #print('test instance for regular solve: \n\n',cities)
     
@@ -294,8 +291,8 @@ def regularSolver():
     
     #Solves
     solver = pyEnv.SolverFactory('gurobi')
-    solver.options['timelimit'] = 10
-    result = solver.solve(model,tee = True)
+    solver.options['timelimit'] = 20
+    result = solver.solve(model,tee=True) #tee=True voor documentatie
     
     walltime = result.Solver.wall_time
     data = result.Problem._list
@@ -303,12 +300,12 @@ def regularSolver():
     UB = data[0].upper_bound
     gap = (UB-LB)/UB
     print("\n test \n\n")
-    print(gap*100)
+    print(f"gap = {gap*100}")
     
     
     #Prints the results
-    #print("\n regular model wall time: \n")
-    #print(result.Solver.wall_time)
+    print("\n regular model wall time: \n")
+    print(result.Solver.wall_time)
     
     ##(city i,city j)
     cities = test_instance.get_cities()
@@ -357,17 +354,30 @@ def plot_cities(cities,bestCities,method,walltime):
     
 
 ##-------------------------Call functions--------------------##
+import statistics as s
 def runMIPLearn():
-    print("\n\n miplearn model")
-    c,bestC,time = miplearnSolver()
-    plot_cities(c,bestC,'miplearn',round(float(time),4))
+    print("\n\n miplearn model \n")
+    timeList = []
+    for i in range(10):
+        c,bestC,time = miplearnSolver()
+        timeList.append(round(float(time),4))
+        if i == 9:
+            plot_cities(c, bestC, 'miplearn', round(float(time), 4))
+    print(timeList)
+    print(f"mean time = {s.mean(timeList)}")
+    print(f"standard dev = {s.stdev(timeList)}")
 
 def runBasic():
     
-    print("\n\n normal solving model")
-    c_basic,bestC_basic ,time_basic = regularSolver()
-    plot_cities(c_basic,bestC_basic,'basic',round(float(time_basic),4))
-
-
-#runBasic()
+    print("\n\n normal solving model \n")
+    timeList = []
+    for i in range(10):
+        c_basic,bestC_basic ,time_basic = regularSolver()
+        timeList.append(round(float(time_basic), 4))
+        if i == 9:
+            plot_cities(c_basic, bestC_basic, 'basic', round(float(time_basic), 4))
+    print(timeList)
+    print(f"mean time = {s.mean(timeList)}")
+    print(f"standard dev = {s.stdev(timeList)}")
+runBasic()
 runMIPLearn()
