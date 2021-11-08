@@ -246,7 +246,7 @@ def training():
     print("Training is complete!")
     pickle.dump(solver,open("solver.pickle","wb"))
 
-#training() #has to be done before calling miplearnSolver()!!
+training() #has to be done before calling miplearnSolver()!!
 
 
 def miplearnSolver():
