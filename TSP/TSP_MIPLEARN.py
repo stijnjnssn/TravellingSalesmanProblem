@@ -232,12 +232,12 @@ def training():
     
     ##-------------------------TRAINING DATA--------------------##
     #training_instances = random_instance_generator(20,25)
-    amount_instances = 20
+    amount_instances = 100
     amount_cities = 25
-    training_instances = instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
+    training_instances = random_instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
     
     ##-------------------------SOLVE ALL TRAINING INSATNCES--------------------##
-    solver = LearningSolver(time_limit=20) #gurobi is the default
+    solver = LearningSolver(time_limit=60) #gurobi is the default
     '''
     Learning Solver = a learning-enhanced MIP solver which uses information from previously solved instances to accelerate the solution of new instances
     '''
@@ -251,7 +251,7 @@ def training():
     print("Training is complete!")
     pickle.dump(solver,open("solver.pickle","wb"))
 
-#training() #has to be done before calling miplearnSolver()!!
+
 
 
 def miplearnSolver():
@@ -384,5 +384,7 @@ def runBasic():
     print(timeList)
     print(f"mean time = {s.mean(timeList)}")
     print(f"standard dev = {s.stdev(timeList)}")
-runBasic()
-runMIPLearn()
+
+training()  # has to be done before calling miplearnSolver()!!
+#runBasic()
+#runMIPLearn()
