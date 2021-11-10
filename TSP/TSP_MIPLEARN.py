@@ -232,7 +232,7 @@ def training():
     
     ##-------------------------TRAINING DATA--------------------##
     #training_instances = random_instance_generator(20,25)
-    amount_instances = 100
+    amount_instances = 20
     amount_cities = 25
     training_instances = instance_generator(amount_instances,amount_cities) #genereer a keer b steden die lichtjes anders zijn
     
